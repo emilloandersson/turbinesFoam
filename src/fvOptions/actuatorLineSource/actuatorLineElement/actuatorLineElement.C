@@ -348,16 +348,35 @@ void Foam::fv::actuatorLineElement::applyForceField
     scalar invepsilonSqr = 1.0/(epsilon*epsilon);
     scalar internalFactor = 1.0/(Foam::pow(epsilon, 3)
                           * Foam::pow(Foam::constant::mathematical::pi, 1.5));
-    forAll(mesh_.cells(), cellI)
+
+    const vectorField& C = mesh_.C();
+
+    if (influenceCells_.empty())
     {
-        scalar dis = magSqr(mesh_.C()[cellI] - position_);
-        if (dis <= sphereRadiusSqr)
+        forAll(mesh_.cells(), cellI)
         {
-            scalar factor = Foam::exp(-dis*invepsilonSqr)*internalFactor;
-                          /// (Foam::pow(epsilon, 3)
-                          //* Foam::pow(Foam::constant::mathematical::pi, 1.5));
-            // forceField is opposite forceVector
-            forceField[cellI] += -forceVector_*factor;
+            scalar dis = magSqr(C[cellI] - position_);
+            if (dis <= sphereRadiusSqr)
+            {
+                scalar factor = Foam::exp(-dis*invepsilonSqr)*internalFactor;
+                // forceField is opposite forceVector
+                forceField[cellI] += -forceVector_*factor;
+            }
+        }
+    }
+    else
+    {
+        const labelList& cells = influenceCells_[azimuthIndex_];
+        forAll(cells, i)
+        {
+            label cellI = cells[i];
+            scalar dis = magSqr(C[cellI] - position_);
+            if (dis <= sphereRadiusSqr)
+            {
+                scalar factor = Foam::exp(-dis*invepsilonSqr)*internalFactor;
+                // forceField is opposite forceVector
+                forceField[cellI] += -forceVector_*factor;
+            }
         }
     }
 
@@ -367,6 +386,53 @@ void Foam::fv::actuatorLineElement::applyForceField
     }
 }
 
+
+void Foam::fv::actuatorLineElement::allocateInfluenceCells
+(
+    label count
+)
+{
+    influenceCells_.setSize(count);
+}
+
+
+void Foam::fv::actuatorLineElement::constructInfluenceCellList
+(
+    label azimuthIndex
+)
+{
+    // Calculate projection width
+    dragCoefficient_ = 4; // Should realistically not be larger than this
+    scalar epsilon = calcProjectionEpsilon();
+    scalar projectionRadius = (epsilon*Foam::sqrt(Foam::log(1.0/0.001)));
+
+    // Apply force to the cells within the element's sphere of influence
+    scalar sphereRadius = chordLength_ + projectionRadius;
+    scalar sphereRadiusSqr = sphereRadius*sphereRadius;
+    
+    // temporary list for 
+    DynamicList<label> cells;
+    
+    const vectorField& C = mesh_.C();
+
+    forAll(C, cellI)
+    {
+        scalar dis = magSqr(C[cellI] - position_);
+        if (dis <= sphereRadiusSqr)
+        {
+            cells.append(cellI);
+        }
+    }
+    influenceCells_[azimuthIndex].transfer(cells);
+}
+
+void Foam::fv::actuatorLineElement::setAzimuthIndex
+(
+    label azimuthIndex
+)
+{
+    azimuthIndex_ = azimuthIndex;
+}
 
 void Foam::fv::actuatorLineElement::calculateInflowVelocity
 (
@@ -542,6 +608,7 @@ Foam::fv::actuatorLineElement::actuatorLineElement
     writePerf_(false),
     rootDistance_(0.0),
     endEffectFactor_(1.0),
+    azimuthIndex_(0),
     addedMassActive_(dict.lookupOrDefault("addedMass", false)),
     addedMass_(mesh.time(), dict.lookupOrDefault("chordLength", 1.0), debug)
 {
@@ -1017,7 +1084,7 @@ void Foam::fv::actuatorLineElement::addSup
     volVectorField& forceField
 )
 {
-    volVectorField forceFieldI
+    /*volVectorField forceFieldI
     (
         IOobject
         (
@@ -1032,14 +1099,14 @@ void Foam::fv::actuatorLineElement::addSup
             forceField.dimensions(),
             vector::zero
         )
-    );
+    );*/
 
     const volVectorField& Uin(eqn.psi());
     calculateForce(Uin);
-    applyForceField(forceFieldI);
+    applyForceField(forceField);
 
     // Add force to total actuator line force
-    forceField += forceFieldI;
+    //forceField += forceFieldI;
 
     // Write performance to file
     if (writePerf_ and Pstream::master())
@@ -1056,7 +1123,7 @@ void Foam::fv::actuatorLineElement::addSup
     volVectorField& forceField
 )
 {
-    volVectorField forceFieldI
+    /*volVectorField forceFieldI
     (
         IOobject
         (
@@ -1071,20 +1138,21 @@ void Foam::fv::actuatorLineElement::addSup
             forceField.dimensions()/rho.dimensions(),
             vector::zero
         )
-    );
+    );*/
 
     const volVectorField& Uin(eqn.psi());
     calculateForce(Uin);
-    applyForceField(forceFieldI);
+    applyForceField(forceField);
 
     // Multiply force vector by local density
     multiplyForceRho(rho);
 
     // Multiply this element's force field by density field
-    forceFieldI *= rho;
+    // (moved to actuatorLineSource as it is the same rho for all)
+    //forceFieldI *= rho;
 
     // Add force to total actuator line force
-    forceField += forceFieldI;
+    // forceField += forceFieldI;
 
     // Write performance to file
     if (writePerf_ and Pstream::master())
@@ -1100,7 +1168,7 @@ void Foam::fv::actuatorLineElement::addTurbulence
     word fieldName
 )
 {
-    volScalarField turbulence
+    /*volScalarField turbulence
     (
         IOobject
         (
@@ -1117,7 +1185,7 @@ void Foam::fv::actuatorLineElement::addTurbulence
             eqn.dimensions()/dimVolume,
             0.0
         )
-    );
+    );*/
 
     // Calculate projection radius
     scalar epsilon = calcProjectionEpsilon();
@@ -1128,27 +1196,67 @@ void Foam::fv::actuatorLineElement::addTurbulence
 
     // Add turbulence to the cells within the element's sphere of influence
     scalar sphereRadius = chordLength_ + projectionRadius;
-    forAll(mesh_.cells(), cellI)
-    {
-        scalar dis = mag(mesh_.C()[cellI] - position_);
-        if (dis <= sphereRadius)
-        {
-            scalar factor = Foam::exp(-Foam::sqr(dis/epsilon))
-                          / (Foam::pow(epsilon, 3)
+    scalar sphereRadiusSqr = sphereRadius*sphereRadius;
+    scalar invepsilonSqr = 1.0/(epsilon*epsilon);
+    scalar internalFactor = 1.0/(Foam::pow(epsilon, 3)
                           * Foam::pow(Foam::constant::mathematical::pi, 1.5));
-            if (fieldName == "k")
+                          
+    const vectorField& C = mesh_.C();
+    scalarField& src = eqn.source();
+    const scalarField& V = mesh_.V();
+
+    if (influenceCells_.empty())
+    {
+        forAll(mesh_.cells(), cellI)
+        {
+            scalar dis = magSqr(C[cellI] - position_);
+            if (dis <= sphereRadiusSqr)
             {
-                turbulence[cellI] = factor*k;
+                scalar factor = Foam::exp(-dis*invepsilonSqr)*internalFactor;
+                if (fieldName == "k")
+                {
+                    //turbulence[cellI] += factor*k;
+                    src[cellI] += factor*k * V[cellI];
+                }
+                else if (fieldName == "epsilon")
+                {
+                    //turbulence[cellI] += factor*Foam::pow(k, 1.5)
+                    //              * 0.09/(chordLength_/10.0);
+                    src[cellI] += factor*Foam::pow(k, 1.5)
+                                  * 0.09/(chordLength_/10.0)
+                                  * V[cellI];
+                }
             }
-            else if (fieldName == "epsilon")
+        }
+    }
+    else
+    {
+        const labelList& cells = influenceCells_[azimuthIndex_];
+        forAll(cells, i)
+        {
+            label cellI = cells[i];
+            scalar dis = magSqr(C[cellI] - position_);
+            if (dis <= sphereRadiusSqr)
             {
-                turbulence[cellI] = factor*Foam::pow(k, 1.5)
-                                  * 0.09/(chordLength_/10.0);
+                scalar factor = Foam::exp(-dis*invepsilonSqr)*internalFactor;
+                if (fieldName == "k")
+                {
+                    //turbulence[cellI] += factor*k;
+                    src[cellI] += factor*k * V[cellI];
+                }
+                else if (fieldName == "epsilon")
+                {
+                    //turbulence[cellI] += factor*Foam::pow(k, 1.5)
+                    //              * 0.09/(chordLength_/10.0);
+                    src[cellI] += factor*Foam::pow(k, 1.5)
+                                  * 0.09/(chordLength_/10.0)
+                                  * V[cellI];
+                }
             }
         }
     }
 
-    eqn += turbulence;
+    //eqn += turbulence;
 }
 
 

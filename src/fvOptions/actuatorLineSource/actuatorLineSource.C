@@ -656,6 +656,39 @@ void Foam::fv::actuatorLineSource::setApplyForce(bool active)
     applyForce_ = active;
 }
 
+void Foam::fv::actuatorLineSource::allocateInfluenceCells
+(
+    label count
+)
+{
+    forAll(elements_, i)
+    {
+        elements_[i].allocateInfluenceCells(count);
+    }
+}
+
+void Foam::fv::actuatorLineSource::constructInfluenceCellList
+(
+    label azimuthIndex
+)
+{
+    forAll(elements_, i)
+    {
+        elements_[i].constructInfluenceCellList(azimuthIndex);
+    }
+}
+
+void Foam::fv::actuatorLineSource::setAzimuthIndex
+(
+    label azimuthIndex
+)
+{
+    forAll(elements_, i)
+    {
+        elements_[i].setAzimuthIndex(azimuthIndex);
+    }
+}
+
 
 const Foam::vector& Foam::fv::actuatorLineSource::force()
 {
@@ -706,7 +739,9 @@ void Foam::fv::actuatorLineSource::addSup
     }
 
     // Zero out force field
-    forceField_ *= dimensionedScalar("zero", forceField_.dimensions(), 0.0);
+    //forceField_ *= dimensionedScalar("zero", forceField_.dimensions(), 0.0);
+    forceField_.primitiveFieldRef() = vector::zero;
+    forceField_.correctBoundaryConditions();
 
     // Zero the total force vector
     force_ = vector::zero;
@@ -779,7 +814,9 @@ void Foam::fv::actuatorLineSource::addSup
     }
 
     // Zero out force field
-    forceField_ *= dimensionedScalar("zero", forceField_.dimensions(), 0.0);
+    //forceField_ *= dimensionedScalar("zero", forceField_.dimensions(), 0.0);
+    forceField_.primitiveFieldRef() = vector::zero;
+    forceField_.correctBoundaryConditions();
 
     // Zero the total force vector
     force_ = vector::zero;
@@ -789,6 +826,9 @@ void Foam::fv::actuatorLineSource::addSup
         elements_[i].addSup(rho, eqn, forceField_);
         force_ += elements_[i].force();
     }
+    
+    //multiply with local density
+    forceField_ *= rho;
 
     Info<< "Force on " << name_ << ": " << endl << force_ << endl << endl;
 

@@ -224,6 +224,15 @@ public:
 
             void setApplyForce(bool active);
 
+            //- Setup code for actuatorDisc to speed up calculations
+            void allocateInfluenceCells(label divisions_);
+
+            //- Setup code for actuatorDisc to speed up calculations
+            void constructInfluenceCellList(label azimuthIndex);
+
+            //- Setup code for actuatorDisc to speed up calculations
+            void setAzimuthIndex(label azimuthIndex);
+
         // Evaluation
 
             //- Compute the moment about a given point

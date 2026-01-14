@@ -200,6 +200,12 @@ protected:
 
         //- Number of elements used to sample velocities
         label nVelocitySamples_;
+        
+        //- List of cell indices for the actuatorDisc loop
+        List<labelList> influenceCells_;
+        
+        //- the current azimuthIndex to use for the influenceCells
+        label azimuthIndex_;
 
 
     // Protected Member Functions
@@ -229,7 +235,11 @@ protected:
         void multiplyForceRho(const volScalarField& rho);
 
         //- Apply force field based on force vector
-        void applyForceField(volVectorField& forceField);
+        void applyForceField
+        (
+            volVectorField& forceField
+        );
+
 
         //- Get inflow velocity
         void calculateInflowVelocity(const volVectorField& Uin);
@@ -403,6 +413,15 @@ public:
                 scalar deltaT,
                 bool useCustomTime = true
             );
+
+            //- allocate the list of influence cells (for actuator disc)
+            void allocateInfluenceCells(label count);
+
+            //- Create the list of influence cells for one angle
+            void constructInfluenceCellList(label azimuthIndex);
+            
+            //- allocate the list of influence cells (for actuator disc)
+            void setAzimuthIndex(label azimuthIndex);
 
 
         // Evaluation

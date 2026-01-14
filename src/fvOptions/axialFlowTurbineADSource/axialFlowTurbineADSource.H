@@ -81,6 +81,9 @@ protected:
         //- Use turbine base class rotate method
         //using turbineALSource::rotate;
         void rotateAD(bool updateOnly = false);
+        
+        //- Set up a list of neighbor cells for faster force projection
+        void buildInfluenceCells();
 
         //- Rotate the turbine a specified angle about its axis
         virtual void rotate(scalar radians);
