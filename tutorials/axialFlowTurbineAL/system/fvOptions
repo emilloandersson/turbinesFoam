@@ -32,6 +32,9 @@ turbine
         freeStreamVelocity  (10 0 0);
         tipSpeedRatio       6.0;
         rotorRadius         0.45;
+	
+	tiltAngle           5;
+	coneAngle           5;
 
         dynamicStall
         {

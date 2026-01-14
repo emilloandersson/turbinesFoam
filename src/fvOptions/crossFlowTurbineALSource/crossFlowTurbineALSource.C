@@ -637,7 +637,7 @@ void Foam::fv::crossFlowTurbineALSource::addSup
                      / (0.5*frontalArea_*magSqr(freeStreamVelocity_));
 
     // Print performance to terminal
-    printPerf();
+    //printPerf();
 
     // Write performance data -- note this will write multiples if there are
     // multiple PIMPLE loops
@@ -717,7 +717,7 @@ void Foam::fv::crossFlowTurbineALSource::addSup
                      / (0.5*rhoRef*frontalArea_*magSqr(freeStreamVelocity_));
 
     // Print performance to terminal
-    printPerf();
+    //printPerf();
 
     // Write performance data -- note this will write multiples if there are
     // multiple PIMPLE loops

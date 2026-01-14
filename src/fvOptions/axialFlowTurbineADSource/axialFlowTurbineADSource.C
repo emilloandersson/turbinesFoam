@@ -267,7 +267,7 @@ void Foam::fv::axialFlowTurbineADSource::addSup
 
 
                 // Print performance to terminal
-                printPerf();
+                //printPerf();
 
                 // Write performance data
                 // Note this will write multiples if there are
@@ -376,7 +376,7 @@ void Foam::fv::axialFlowTurbineADSource::addSup
                     / (0.5*rhoRef*frontalArea_*magSqr(freeStreamVelocity_));
 
                 // Print performance to terminal
-                printPerf();
+                //printPerf();
 
                 // Write performance data -- note this will write multiples
                 // if there are multiple PIMPLE loops

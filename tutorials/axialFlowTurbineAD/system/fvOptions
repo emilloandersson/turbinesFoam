@@ -35,6 +35,9 @@ turbine
         bladeMultiplier     3;          // 3-bladed turbine
         divisions           90;        // number of steps/revolution
 
+	tiltAngle           5;
+	coneAngle           5;
+
         dynamicStall
         {
             active          off;
