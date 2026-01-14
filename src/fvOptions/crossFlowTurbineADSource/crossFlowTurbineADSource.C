@@ -62,7 +62,8 @@ Foam::fv::crossFlowTurbineADSource::crossFlowTurbineADSource
     const fvMesh& mesh
 )
 :
-    crossFlowTurbineALSource(name, modelType, dict, mesh)
+    crossFlowTurbineALSource(name, modelType, dict, mesh),
+    firstUse_(true)
 {
     read(dict);
     customTime_ = mesh.time().value();
@@ -84,7 +85,7 @@ Foam::fv::crossFlowTurbineADSource::crossFlowTurbineADSource
     {
         shaft_->setApplyForce(false);
     }
-    buildInfluenceCells();
+    //buildInfluenceCells();
     // reset these after buildInfluenceCells
     customTime_ = mesh.time().value();
     angleDeg_ = 0;
@@ -172,6 +173,12 @@ void Foam::fv::crossFlowTurbineADSource::addSup
     const label fieldI
 )
 {
+    if (firstUse_)
+    {
+        buildInfluenceCells();
+        angleDeg_ = 0;
+        firstUse_ = false;
+    }
     // code can run extra revolutions to make dynamic stall converge
     for (int currentLoop = 0; currentLoop < dynStallLoop_; currentLoop++)
     {
@@ -272,6 +279,12 @@ void Foam::fv::crossFlowTurbineADSource::addSup
     const label fieldI
 )
 {
+    if (firstUse_)
+    {
+        buildInfluenceCells();
+        angleDeg_ = 0;
+        firstUse_ = false;
+    }
     // code can run extra revolutions to make dynamic stall converge
     for (int currentLoop = 0; currentLoop < dynStallLoop_; currentLoop++)
     {
@@ -369,6 +382,12 @@ void Foam::fv::crossFlowTurbineADSource::addSup
     const label fieldI
 )
 {
+    if (firstUse_)
+    {
+        buildInfluenceCells();
+        angleDeg_ = 0;
+        firstUse_ = false;
+    }
     // code can run extra revolutions to make dynamic stall converge
     for (int currentLoop = 0; currentLoop < dynStallLoop_; currentLoop++)
     {

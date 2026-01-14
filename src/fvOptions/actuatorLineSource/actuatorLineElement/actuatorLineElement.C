@@ -164,29 +164,23 @@ Foam::label Foam::fv::actuatorLineElement::findCell
 {
     if (Pstream::parRun())
     {
-        if (meshBoundBox_.containsInside(location))
+        bool mayContain = meshBoundBox_.containsInside(location);
+
+        // Make decision global
+        reduce(mayContain, orOp<bool>());
+
+        if (!mayContain)
         {
-            if (debug)
-            {
-                Pout<< "Looking for cell containing " << location
-                    << " inside bounding box:" << endl
-                    << meshBoundBox_ << endl;
-            }
-            return mesh_.findCell(location);
+            return -1;   // no rank will call findCell()
+        }
+
+        // Now ALL ranks call it
+        return mesh_.findCell(location);
         }
         else
         {
-            if (debug)
-            {
-                Pout<< "Cell not inside " << meshBoundBox_ << endl;
-            }
-            return -1;
+            return mesh_.findCell(location);;
         }
-    }
-    else
-    {
-        return mesh_.findCell(location);;
-    }
 }
 
 
@@ -222,6 +216,7 @@ Foam::scalar Foam::fv::actuatorLineElement::calcProjectionEpsilon()
     scalar epsilonMesh = VGREAT;
     const scalarField& V = mesh_.V();
     label posCellI = findCell(position_);
+
     if (posCellI >= 0)
     {
         // Projection width based on local cell size (from Troldborg (2008))

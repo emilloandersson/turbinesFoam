@@ -72,6 +72,9 @@ protected:
         //- internal time used to perform a loop within the openfoam-step
         scalar customTime_;
         
+        //-first time step indicator, used to determine when to build cells
+        bool firstUse_;
+        
 
     // Protected Member Functions
 

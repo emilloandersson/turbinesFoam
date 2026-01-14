@@ -62,7 +62,8 @@ Foam::fv::axialFlowTurbineADSource::axialFlowTurbineADSource
     const fvMesh& mesh
 )
 :
-    axialFlowTurbineALSource(name, modelType, dict, mesh)
+    axialFlowTurbineALSource(name, modelType, dict, mesh),
+    firstUse_(true)
 {
     read(dict);
     customTime_ = mesh.time().value();
@@ -90,7 +91,7 @@ Foam::fv::axialFlowTurbineADSource::axialFlowTurbineADSource
     {
         nacelle_->setApplyForce(false);
     }
-    buildInfluenceCells();
+    //buildInfluenceCells();
     // reset these after buildInfluenceCells
     customTime_ = mesh.time().value();
     angleDeg_ = 0;
@@ -172,6 +173,14 @@ void Foam::fv::axialFlowTurbineADSource::addSup
     const label fieldI
 )
 {
+    Info << "Before first use" << endl;
+    if (firstUse_)
+    {
+        buildInfluenceCells();
+        angleDeg_ = 0;
+        firstUse_ = false;
+    }
+    Info << "after first use" << endl;
     // tower and nacelle are not rotating,
     // so we only need to calculate the force field once
     if (hasTower_)
@@ -301,6 +310,12 @@ void Foam::fv::axialFlowTurbineADSource::addSup
     const label fieldI
 )
 {
+    if (firstUse_)
+    {
+        buildInfluenceCells();
+        angleDeg_ = 0;
+        firstUse_ = false;
+    }
     // code can run extra revolutions to make dynamic stall converge
     for (int currentLoop = 0; currentLoop < dynStallLoop_; currentLoop++)
     {
@@ -412,6 +427,12 @@ void Foam::fv::axialFlowTurbineADSource::addSup
     const label fieldI
 )
 {
+    if (firstUse_)
+    {
+        buildInfluenceCells();
+        angleDeg_ = 0;
+        firstUse_ = false;
+    }
     // code can run extra revolutions to make dynamic stall converge
     for (int currentLoop = 0; currentLoop < dynStallLoop_; currentLoop++)
     {
