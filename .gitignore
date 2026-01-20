@@ -8,3 +8,4 @@ callgrind*
 tests/.noseids
 **darwin64Clang**
 .vscode
+#*#
