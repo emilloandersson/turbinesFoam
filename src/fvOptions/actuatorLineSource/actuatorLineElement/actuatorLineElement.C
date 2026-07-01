@@ -1423,31 +1423,9 @@ void Foam::fv::actuatorLineElement::addTurbulence
     word fieldName
 )
 {
-    /*volScalarField turbulence
-    (
-        IOobject
-        (
-            "turbulence." + name_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar
-        (
-            "zero",
-            eqn.dimensions()/dimVolume,
-            0.0
-        )
-    );*/
-
     // Calculate projection radius
     scalar epsilon = calcProjectionEpsilon();
     scalar projectionRadius = (epsilon*Foam::sqrt(Foam::log(1.0/0.001)));
-
-    // Calculate TKE injection rate
-    scalar k = 0.1*mag(dragCoefficient_);
 
     // Add turbulence to the cells within the element's sphere of influence
     scalar sphereRadius = chordLength_ + projectionRadius;
@@ -1455,7 +1433,25 @@ void Foam::fv::actuatorLineElement::addTurbulence
     scalar invepsilonSqr = 1.0/(epsilon*epsilon);
     scalar internalFactor = 1.0/(Foam::pow(epsilon, 3)
                           * Foam::pow(Foam::constant::mathematical::pi, 1.5));
-                          
+
+    const volScalarField& kField =
+        mesh_.lookupObject<volScalarField>("k");
+    const volScalarField& epsilonField =
+        mesh_.lookupObject<volScalarField>("epsilon");
+
+    // Calculate TKE injection rate
+    scalar area = chordLength_ * spanLength_;
+    scalar magSqrU = magSqr(relativeVelocity_);
+    scalar lift = 0.5*area*liftCoefficient_*magSqrU;
+    scalar drag = 0.5*area*dragCoefficient_*magSqrU;
+    scalar Ceps1 = 1.44;
+    scalar magU = mag(relativeVelocity_);
+    scalar liftBasedTurbInjection = -1.0;
+    scalar dragBasedTurbInjection = -1.0;
+    scalar turbRed =
+      liftBasedTurbInjection * lift * magU +
+      dragBasedTurbInjection * drag * magU;
+    
     const vectorField& C = mesh_.C();
     scalarField& src = eqn.source();
     const scalarField& V = mesh_.V();
@@ -1468,18 +1464,17 @@ void Foam::fv::actuatorLineElement::addTurbulence
             if (dis <= sphereRadiusSqr)
             {
                 scalar factor = Foam::exp(-dis*invepsilonSqr)*internalFactor;
+
                 if (fieldName == "k")
                 {
-                    //turbulence[cellI] += factor*k;
-                    src[cellI] += factor*k * V[cellI];
+		    src[cellI] -= factor * turbRed * V[cellI];
                 }
                 else if (fieldName == "epsilon")
                 {
-                    //turbulence[cellI] += factor*Foam::pow(k, 1.5)
-                    //              * 0.09/(chordLength_/10.0);
-                    src[cellI] += factor*Foam::pow(k, 1.5)
-                                  * 0.09/(chordLength_/10.0)
-                                  * V[cellI];
+		    scalar kCell   = kField[cellI];
+                    scalar epsCell = epsilonField[cellI];
+		    src[cellI] -= factor * Ceps1 * turbRed
+		                  * (epsCell/kCell) * V[cellI];
                 }
             }
         }
@@ -1496,22 +1491,18 @@ void Foam::fv::actuatorLineElement::addTurbulence
                 scalar factor = Foam::exp(-dis*invepsilonSqr)*internalFactor;
                 if (fieldName == "k")
                 {
-                    //turbulence[cellI] += factor*k;
-                    src[cellI] += factor*k * V[cellI];
+		    src[cellI] -= factor * turbRed * V[cellI];
                 }
                 else if (fieldName == "epsilon")
                 {
-                    //turbulence[cellI] += factor*Foam::pow(k, 1.5)
-                    //              * 0.09/(chordLength_/10.0);
-                    src[cellI] += factor*Foam::pow(k, 1.5)
-                                  * 0.09/(chordLength_/10.0)
-                                  * V[cellI];
+		    scalar kCell   = kField[cellI];
+                    scalar epsCell = epsilonField[cellI];
+		    src[cellI] -= factor * Ceps1 * turbRed
+		                  * (epsCell/kCell) * V[cellI];
                 }
             }
         }
     }
-
-    //eqn += turbulence;
 }
 
 
