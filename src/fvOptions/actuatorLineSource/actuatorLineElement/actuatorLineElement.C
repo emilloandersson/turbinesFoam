@@ -63,7 +63,8 @@ void Foam::fv::actuatorLineElement::read()
     dict_.lookup("nVelocitySamples") >> nVelocitySamples_;
     dict_.lookup("endEffectsCorrectAoA") >> endEffectsCorrectAngleOfAttack_;
     dict_.lookup("endEffectsCorrectWindAngle") >> endEffectsCorrectAngleOfRelWind_;
-
+    dict_.lookup("endEffectsCorrectAngleClamp") >> endEffectsCorrectAngleClamp_;
+    
 
     // Create dynamic stall model if found
     if (dict_.found("dynamicStall"))
@@ -1141,7 +1142,20 @@ void Foam::fv::actuatorLineElement::calculateForce()
         scalar angleOfAttackNew =
             (angleOfAttack_ - zeroLiftAngleOfAttack)*endEffectFactor_
             + zeroLiftAngleOfAttack;
-        angleOfAttackDiff_ = degToRad(angleOfAttack_ - angleOfAttackNew);
+        scalar diff = degToRad(angleOfAttack_ - angleOfAttackNew);
+        if (endEffectsCorrectAngleClamp_ >= 0)
+        {
+            // Limit the max rotation of the lift and drag
+            angleOfAttackDiff_ = 
+                sign(diff) *
+                min(
+                    fabs(diff), degToRad(endEffectsCorrectAngleClamp_)
+                );
+        }
+        else
+        {
+            angleOfAttackDiff_ = diff;
+        }
         if (endEffectsCorrectAngleOfAttack_)
         {
             angleOfAttack_ = angleOfAttackNew;

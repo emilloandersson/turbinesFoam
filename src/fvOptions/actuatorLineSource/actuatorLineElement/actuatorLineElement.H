@@ -234,6 +234,9 @@ protected:
         //- Correct angle of relative wind
         bool endEffectsCorrectAngleOfRelWind_;
 
+        //- Limit how much the angle of the relative wind can be corrected
+        scalar endEffectsCorrectAngleClamp_;
+
         //- The angle to correct the wind with
         scalar angleOfAttackDiff_;
 
