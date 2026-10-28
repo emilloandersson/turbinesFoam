@@ -797,7 +797,7 @@ void Foam::fv::actuatorLineElement::createOutputFile()
 
     if (outputFile_.is_open())
     {
-        outputFile_<< "time,root_dist,x,y,z,rel_vel_mag,Ux,Re,alpha_deg,"
+        outputFile_<< "time,root_dist,span_length,x,y,z,rel_vel_mag,Ux,Re,alpha_deg,"
                    << "alpha_geom_deg,phi,cl,cd,fx,fy,fz,end_effect_factor,"
                    << "c_ref_t,c_ref_n,f_ref_t,f_ref_n" << std::endl;
     }
@@ -812,6 +812,7 @@ void Foam::fv::actuatorLineElement::writePerf()
     // phi,cl,cd,fx,fy,fz,end_effect_factor,c_ref_t,c_ref_n,f_ref_t,f_ref_n
     stringBuffer_<< time << ","
             << rootDistance_ << ","
+            << spanLength_ << ","
             << position_[azimuthIndex_].x() << ","
             << position_[azimuthIndex_].y() << ","
             << position_[azimuthIndex_].z() << ","
@@ -1054,7 +1055,7 @@ Foam::scalar Foam::fv::actuatorLineElement::inflowRefAngle()
         * mag(chordRefDirection_[azimuthIndex_]));
     scalar inflowVelAngleRad =
         acos(sign(arg)*min(Foam::scalar(1.0), mag(arg)));
-    return radToDeg(inflowVelAngleRad - angleOfAttackDiff_);
+    return radToDeg(inflowVelAngleRad - (endEffectsCorrectAngleOfRelWind_?angleOfAttackDiff_:0));
 }
 
 
