@@ -126,6 +126,12 @@ protected:
         //- name for force field
         word forceFieldName_;
 
+        //- Flag to write fields at final time step
+        bool writeFieldsAtEnd_;
+
+        //- Make sure that final fields are written once
+        bool finalFieldsWritten_;
+
     // Protected Member Functions
 
         //- Gather data, calculate velocity and distribute
@@ -136,6 +142,9 @@ protected:
 
         //- Create local force field if needed
         void createForceField();
+
+        //- Write fields on the final time step
+        void writeFieldsAtEnd();
 
 public:
 

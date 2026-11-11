@@ -439,6 +439,32 @@ Foam::fv::actuatorModelBase::actuatorLines() const
     return actuatorLines_;
 }
 
+void Foam::fv::actuatorModelBase::writeFieldsAtEnd()
+{
+    if
+    (
+        writeFieldsAtEnd_
+     && not finalFieldsWritten_
+     && (
+             mesh_.time().value()
+           + 0.5*mesh_.time().deltaT().value()
+           >= mesh_.time().endTime().value()
+        )
+    )
+    {
+        //Info<< "Writing fields at final time" << endl;
+        Info<< "turbinesFoam: forcing field write at time "
+            << mesh_.time().value()
+            << endl;
+
+        Time& runTime = const_cast<Time&>(mesh_.time());
+        runTime.writeNow();
+
+        finalFieldsWritten_ = true;
+    }
+}
+
+
 // * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * * //
 
 Foam::fv::actuatorModelBase::actuatorModelBase(
@@ -458,7 +484,9 @@ Foam::fv::actuatorModelBase::actuatorModelBase(
       actuatorLines_(0),
       rhoPtr_(nullptr),
       muPtr_(nullptr),
-      initialized_(false)
+      initialized_(false),
+      writeFieldsAtEnd_(false),
+      finalFieldsWritten_(false)
 {
     meshBoundBox_.inflate(1e-6);
     read(dict);
@@ -580,6 +608,8 @@ void Foam::fv::actuatorModelBase::addSup
     forceField.correctBoundaryConditions();
 
     eqn += forceField;
+
+    writeFieldsAtEnd();
 }
 
 
@@ -612,6 +642,8 @@ void Foam::fv::actuatorModelBase::addSup
     forceField.correctBoundaryConditions();
     
     eqn += forceField;
+
+    writeFieldsAtEnd();
 }
 
 
@@ -626,6 +658,8 @@ void Foam::fv::actuatorModelBase::addSup
     word fieldName = fieldNames_[fieldI];
     Info<< endl << "Adding " << fieldName << " from " << name_ << endl << endl;
     addTurbulence(eqn, fieldName);
+
+    writeFieldsAtEnd();
 }
 
 bool Foam::fv::actuatorModelBase::read(const dictionary& dict)
@@ -636,6 +670,11 @@ bool Foam::fv::actuatorModelBase::read(const dictionary& dict)
         (
             "writeForceField",
             true
+        );
+        writeFieldsAtEnd_ = coeffs_.lookupOrDefault
+        (
+            "writeFieldsAtEnd",
+            false
         );
         printPerf_ = coeffs_.lookupOrDefault
         (
